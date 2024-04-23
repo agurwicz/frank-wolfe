@@ -74,13 +74,13 @@ class GeneralProblem(ABC):
     @staticmethod
     def optimization_algorithm(func):
 
-        def wrapper(instance, **kwargs):
+        def wrapper(instance, *args):
 
             instance._errors = list()
             instance._times = list()
 
             start_time = time()
-            func(instance, **kwargs)
+            func(instance, *args)
             elapsed_time = time() - start_time
 
             return elapsed_time, instance._errors, [item - start_time for item in instance._times]
@@ -119,11 +119,8 @@ class GeneralProblem(ABC):
 
         self.__show_results(other=stopping_condition.value)
 
+    @optimization_algorithm
     def frank_wolfe_open_loop(self, parameter):
-
-        start_time = time()
-        errors = list()
-        times = list()
 
         def __step_size(iteration_index):
 
@@ -140,24 +137,21 @@ class GeneralProblem(ABC):
             s = self._linear_oracle(x=gradient)
 
             gap = gradient.transpose() @ (x-s)
-            errors.append(gap)
+            self._errors.append(gap)
             self.__show_results(iteration=iteration, value=gap)
 
             if gap < self._tolerance:
                 stopping_condition = self.__StoppingCondition.gap
-                times.append(time() - start_time)
+                self._times.append(time())
                 break
 
             step_size = __step_size(iteration_index=iteration)
 
             iteration += 1
             x = (1-step_size) * x + step_size * s
-            times.append(time() - start_time)
+            self._times.append(time())
 
         self.__show_results(other=stopping_condition.value)
-
-        elapsed_time = time() - start_time
-        return elapsed_time, errors, times
 
     @optimization_algorithm
     def frank_wolfe_short_steps(self):

@@ -17,10 +17,13 @@ class GeneralExperiment:
             output_directory_path=output_directory_path
         )
 
+        experiments, varying_parameters = self.__get_experiments(
+            experiments=experiments
+        )
+
         self.__run_experiments(
-            experiments=self.__get_experiments(
-                experiments=experiments
-            ),
+            experiments=experiments,
+            varying_parameters=varying_parameters,
             variant_experiments=self.__get_variant_experiments(
                 variants=variants,
                 run_experiment_comparison=run_experiment_comparison,
@@ -54,7 +57,10 @@ class GeneralExperiment:
             raise Exception('missing parameter in experiments')
 
         keys, values = zip(*experiments.items())
-        return [dict(zip(keys, value)) for value in product(*values)]
+        return (
+            [dict(zip(keys, value)) for value in product(*values)],
+            [parameter for parameter, parameter_values in experiments.items() if len(parameter_values) > 1]
+        )
 
     @staticmethod
     def __get_variant_experiments(variants, run_experiment_comparison, run_single_variants):
@@ -74,7 +80,7 @@ class GeneralExperiment:
 
         return variant_experiments
 
-    def __run_experiments(self, experiments, variant_experiments):
+    def __run_experiments(self, experiments, varying_parameters, variant_experiments):
 
         def __get_experiment_path(counter):
 
@@ -124,10 +130,10 @@ class GeneralExperiment:
                     else:
                         time, errors, times = implementation()
 
-                    name = 'size {size}, alpha {alpha}'.format(
-                        size=experiment['number_of_features'],
-                        alpha=experiment['alpha']
-                    )
+                    name = ', '.join([
+                        '{name} {value}'.format(name=parameter_name, value=experiment[parameter_name])
+                        for parameter_name in varying_parameters
+                    ])
 
                     axes[0].semilogy(
                         range(len(errors)),
